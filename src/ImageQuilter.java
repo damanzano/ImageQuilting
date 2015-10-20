@@ -83,24 +83,25 @@ public class ImageQuilter {
 		}
 
 		// Create the output image
-		Mat output = new Mat(okHeight, okWidth, CvType.CV_8UC3);
+		Mat output = Mat.zeros(okHeight, okWidth, CvType.CV_8UC3);
 		
 		// Get the first patch to start the process
 		selectFirstRandomPatch(output);
 
 		// Save the best set of distances between patches
-		double dists[][] = new double[textureImage.cols() - patchSize][textureImage
-				.rows() - patchSize];
+		double dists[][] = new double[textureImage
+				.rows() - patchSize][textureImage.cols() - patchSize];
 		//
 		for (int r = 0; r < okWidth; r += patchSize - overlapSize) {
 			for (int c = 0; c < okHeight; c += patchSize - overlapSize) {
 				// Get the output cell to be analyzed
+				Point outputLoc = new Point(c,r);
 				Mat outputCell = output.submat(new Rect(c, r, patchSize,
 						patchSize));
 
 				// Get the all patches of source texture image and their differences 
 				Point bestLoc = calcDists(dists, outputCell, c, r);
-				double bestval = dists[(int)bestLoc.x][(int)bestLoc.y];
+				double bestval = dists[(int)bestLoc.y][(int)bestLoc.x];
 				
 				
 				// Filter the ones that satisfy the overlap constraints
@@ -108,11 +109,14 @@ public class ImageQuilter {
 				LinkedList<Point> loclist = getBestOverlaps(dists, threshold);
 				int choice = (int) (Math.random() * loclist.size());
 				Point loc = loclist.get(choice);
+				
+				// Fill the output with new data
+				fillPatch(outputCell, outputLoc, loc);
 			}
 		}
 
 		// Write the image on disk
-		Imgcodecs.imwrite("output/step.jpg", output);
+		Imgcodecs.imwrite("output/step-2.jpg", output);
 
 		// // View inView = new View(input, x, y);
 		// // Patch outPatch = new Patch(output, 0, 0, patchsize, patchsize);
@@ -155,6 +159,8 @@ public class ImageQuilter {
 		return output;
 	}
 	
+	
+
 	/**
 	 * This method selects a random patch from the source texture and put it in
 	 * top left corner of an output image
@@ -204,13 +210,13 @@ public class ImageQuilter {
 
 		// loop over the possible input patch row locations
 		for (int y = 0; y < textureImage.rows() - patchSize; y++) {
-			for (int x = 0; x > textureImage.cols() - patchSize; x++) {
+			for (int x = 0; x < textureImage.cols() - patchSize; x++) {
 				Mat sourceCell = textureImage.submat(new Rect(x, y, patchSize,
 						patchSize));
 
 				double sum = 0.0;
-				Mat leftOverlapDiff = null;
-				Mat topOverlapDiff = null;
+				Mat leftOverlapDiff = new Mat();
+				Mat topOverlapDiff = new Mat();
 
 				// Calculate ssd of left overlap
 				if (cellCol != 0) {
@@ -272,6 +278,26 @@ public class ImageQuilter {
 		}
 		return list;
 	}
+	
+	/**
+	 * 
+	 * @param outputCell
+	 * @param loc
+	 */
+	private void fillPatch(Mat outputCell, Point outputLoc, Point sourceLoc) {
+		Mat sourceCell = textureImage.submat(new Rect((int) sourceLoc.x, (int) sourceLoc.y, patchSize, patchSize));
+		
+		
+		if(outputLoc.x==0){
+			
+		}
+		int nonOverlapSize = patchSize-overlapSize;
+		Mat sourceNOCell = sourceCell.submat(new Rect(overlapSize,overlapSize, nonOverlapSize, nonOverlapSize));
+		Mat outputNOCell = sourceCell.submat(new Rect(overlapSize,overlapSize, nonOverlapSize, nonOverlapSize));
+		sourceNOCell.copyTo(outputNOCell);
+		
+	}
+	
 	public static void main(String[] args) {
 		File textureFile = new File("resources/textures/0.jpg");
 		Mat textureImage = new Mat();
@@ -281,7 +307,7 @@ public class ImageQuilter {
 				Imgcodecs.CV_LOAD_IMAGE_COLOR);
 
 		ImageQuilter iq = new ImageQuilter(textureImage, 30, 5, false, 2.5);
-		iq.synthesize(150, 150);
+		iq.synthesize(155, 155);
 
 	}
 
