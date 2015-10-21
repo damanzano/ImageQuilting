@@ -87,13 +87,14 @@ public class ImageQuilter {
 		
 		// Get the first patch to start the process
 		selectFirstRandomPatch(output);
+		Imgcodecs.imwrite("output/process-1.jpg", output);
 
 		// Save the best set of distances between patches
 		double dists[][] = new double[textureImage
 				.rows() - patchSize][textureImage.cols() - patchSize];
 		//
-		for (int r = 0; r < okWidth; r += patchSize - overlapSize) {
-			for (int c = 0; c < okHeight; c += patchSize - overlapSize) {
+		for (int r = 0; (r + patchSize - overlapSize) < okWidth; r += patchSize - overlapSize) {
+			for (int c = 0; (c + patchSize - overlapSize) < okHeight; c += patchSize - overlapSize) {
 				// Get the output cell to be analyzed
 				Point outputLoc = new Point(c,r);
 				Mat outputCell = output.submat(new Rect(c, r, patchSize,
@@ -117,45 +118,6 @@ public class ImageQuilter {
 
 		// Write the image on disk
 		Imgcodecs.imwrite("output/step-2.jpg", output);
-
-		// // View inView = new View(input, x, y);
-		// // Patch outPatch = new Patch(output, 0, 0, patchsize, patchsize);
-		// // SynthAide.copy(inView, outPatch, 0, 0, patchsize, patchsize);
-		//
-		// // done already?
-		// if (!outPatch.nextColumn(overlapsize))
-		// return output;
-		//
-		// // loop over the rows of output patches
-		// int currow = 0;
-		// double dists[][] = new double[input.getHeight() - patchsize +
-		// 1][input
-		// .getWidth() - patchsize + 1];
-		// do {
-		//
-		// // loop over the patches in this row
-		// do {
-		//
-		// // get the distances for this neighborhood
-		// TwoDLoc bestloc = calcDists(dists, outPatch);
-		// double bestval = dists[bestloc.getRow()][bestloc.getCol()];
-		//
-		//  
-		// LinkedList loclist = SynthAide.lessThanEqual(dists, threshold);
-		// int choice = (int) (Math.random() * loclist.size());
-		// TwoDLoc loc = (TwoDLoc) loclist.get(choice);
-		//
-		// // copy in the patch
-		// // fillAndBlend(outPatch, loc);
-		// pathAndFill(outPatch, loc);
-		//
-		// } while (outPatch.nextColumn(overlapsize));
-		//
-		// currow++;
-		// System.out.println("done with row " + currow + " / " + patchRows);
-		//
-		// } while (outPatch.nextRow(overlapsize));
-
 		return output;
 	}
 	
@@ -291,10 +253,12 @@ public class ImageQuilter {
 		if(outputLoc.x==0){
 			
 		}
+		
 		int nonOverlapSize = patchSize-overlapSize;
 		Mat sourceNOCell = sourceCell.submat(new Rect(overlapSize,overlapSize, nonOverlapSize, nonOverlapSize));
 		Mat outputNOCell = sourceCell.submat(new Rect(overlapSize,overlapSize, nonOverlapSize, nonOverlapSize));
-		sourceNOCell.copyTo(outputNOCell);
+		sourceCell.copyTo(outputCell);
+		//sourceNOCell.copyTo(outputNOCell);
 		
 	}
 	
