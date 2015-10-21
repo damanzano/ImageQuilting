@@ -177,24 +177,19 @@ public class ImageQuilter {
 						patchSize));
 
 				double sum = 0.0;
-				Mat leftOverlapDiff = new Mat();
-				Mat topOverlapDiff = new Mat();
+				
 
 				// Calculate ssd of left overlap
 				if (cellCol != 0) {
-					Mat sourceLeft = sourceCell.submat(new Rect(0, 0, overlapSize, sourceCell.rows()));
-					Mat outputLeft = outputCell.submat(new Rect(0, 0, overlapSize, outputCell.rows()));
-					Core.subtract(outputLeft, sourceLeft, leftOverlapDiff);
-					Core.pow(leftOverlapDiff, 2, leftOverlapDiff);
+					Mat leftOverlapDiff = leftOverlapDiff(outputCell, sourceCell);
+					
 					sum += Core.sumElems(leftOverlapDiff).val[0];
 				}
 
 				// Calculate ssd of top overlap
 				if (cellRow != 0) {
-					Mat sourceTop = sourceCell.submat(new Rect(0, 0, sourceCell.cols(), overlapSize));
-					Mat outputTop = outputCell.submat(new Rect(0, 0, outputCell.cols(), overlapSize));
-					Core.subtract(outputTop, sourceTop, topOverlapDiff);
-					Core.pow(topOverlapDiff, 2, topOverlapDiff);
+					Mat topOverlapDiff = topOverlapDiff(outputCell, sourceCell);
+					
 					sum += Core.sumElems(topOverlapDiff).val[0];
 				}
 
@@ -240,6 +235,40 @@ public class ImageQuilter {
 		}
 		return list;
 	}
+
+	/**
+	 * This method calculates the horizontal error surface of a pair of patches
+	 * @param outputCell
+	 * @param sourceCell
+	 * @return
+	 */
+	private Mat leftOverlapDiff(Mat outputCell, Mat sourceCell){
+		Mat leftOverlapDiff = new Mat();
+		
+		Mat sourceLeft = sourceCell.submat(new Rect(0, 0, overlapSize, sourceCell.rows()));
+		Mat outputLeft = outputCell.submat(new Rect(0, 0, overlapSize, outputCell.rows()));
+		Core.subtract(outputLeft, sourceLeft, leftOverlapDiff);
+		Core.pow(leftOverlapDiff, 2, leftOverlapDiff);
+		
+		return leftOverlapDiff;
+	}
+	
+	/**
+	 * This method calculates the vertical error surface of a pair of patches
+	 * @param outputCell
+	 * @param sourceCell
+	 * @return
+	 */
+	private Mat topOverlapDiff(Mat outputCell, Mat sourceCell){
+		Mat topOverlapDiff = new Mat();
+		
+		Mat sourceTop = sourceCell.submat(new Rect(0, 0, sourceCell.cols(), overlapSize));
+		Mat outputTop = outputCell.submat(new Rect(0, 0, outputCell.cols(), overlapSize));
+		Core.subtract(outputTop, sourceTop, topOverlapDiff);
+		Core.pow(topOverlapDiff, 2, topOverlapDiff);
+		
+		return topOverlapDiff;
+	}
 	
 	/**
 	 * 
@@ -248,17 +277,47 @@ public class ImageQuilter {
 	 */
 	private void fillPatch(Mat outputCell, Point outputLoc, Point sourceLoc) {
 		Mat sourceCell = textureImage.submat(new Rect((int) sourceLoc.x, (int) sourceLoc.y, patchSize, patchSize));
-		
+		int nonOverlapSize = patchSize-overlapSize;
 		
 		if(outputLoc.x==0){
+			Mat sourceOCell = sourceCell.submat(new Rect(0,0, overlapSize, patchSize));
+			Mat outputOCell = outputCell.submat(new Rect(0,0, overlapSize, patchSize));
+			sourceOCell.copyTo(outputOCell);
 			
+		}else if(outputLoc.y==0){
+			Mat sourceOCell = sourceCell.submat(new Rect(0,0, patchSize, overlapSize));
+			Mat outputOCell = outputCell.submat(new Rect(0,0, patchSize, overlapSize));
+			sourceOCell.copyTo(outputOCell);
+		}else{
+			Mat topOverlapDiff = topOverlapDiff(outputCell, sourceCell);
+			Mat leftOverlapDiff = leftOverlapDiff(outputCell, sourceCell);
+			MinPathFinder topFinder = new MinPathFinder(topOverlapDiff, false);
+			MinPathFinder leftFinder = new MinPathFinder(leftOverlapDiff, false);
+			Point leftLoc = new Point(0,0);
+			Point topLoc = new Point(0,0);
+			
+			// Find the best combine source
+			getIntersectionPath(leftFinder,topFinder, leftLoc, topLoc);
 		}
 		
-		int nonOverlapSize = patchSize-overlapSize;
+		// Fill the non-overlap region
 		Mat sourceNOCell = sourceCell.submat(new Rect(overlapSize,overlapSize, nonOverlapSize, nonOverlapSize));
-		Mat outputNOCell = sourceCell.submat(new Rect(overlapSize,overlapSize, nonOverlapSize, nonOverlapSize));
-		sourceCell.copyTo(outputCell);
-		//sourceNOCell.copyTo(outputNOCell);
+		Mat outputNOCell = outputCell.submat(new Rect(overlapSize,overlapSize, nonOverlapSize, nonOverlapSize));
+		sourceNOCell.copyTo(outputNOCell);
+		
+	}
+	
+	private void getIntersectionPath(MinPathFinder leftFinder,
+			MinPathFinder topFinder, Point leftLoc, Point topLoc) {
+		// Get the best combine location to start
+		double bestCost = leftFinder.costOf(0, 0) + topFinder.costOf(0, 0);
+		
+		for(int r=0; r<overlapSize;r++){
+			for(int c=0; c<overlapSize; c++){
+				double cost = leftFinder.costOf(r, c) + topFinder.costOf(r, c);
+				
+			}
+		}
 		
 	}
 	
